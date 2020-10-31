@@ -10,6 +10,7 @@
 #include "Components/InputComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
+#include "UsableActor.h"
 
 #include "CustomChar.generated.h"
 
@@ -41,6 +42,23 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	// Get actor derived from UsableActor currently looked at by the player
+	class AUsableActor* GetUsableInView();
+	// Max distance to use/focus on actors.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
+		float MaxUseDistance;
+	// True only in first frame when focused on new usable actor.
+	bool bHasNewFocus;
+
+	// Actor derived from UsableActor currently in center-view.
+	AUsableActor* FocusedUsableActor;
+
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+public:
+
+	/** Use the actor currently in view (if derived from UsableActor) */
+	UFUNCTION(BlueprintCallable, WithValidation, Server, Reliable, Category = PlayerAbility)
+		virtual void Use();
 };

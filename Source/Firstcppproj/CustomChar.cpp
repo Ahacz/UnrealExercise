@@ -2,10 +2,15 @@
 
 
 #include "CustomChar.h"
+#include "Firstcppproj.h"
+#include "UsableActor.h"
 
 // Sets default values
 ACustomChar::ACustomChar()
 {
+
+	MaxUseDistance = 800;
+	bHasNewFocus = true;
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -41,12 +46,82 @@ void ACustomChar::BeginPlay()
 	
 }
 
+//Perform a raytrace to find the closest interactable object from camera's pov
+AUsableActor* ACustomChar::GetUsableInView()
+{
+	FVector camLoc;
+	FRotator camRot;
+
+	if (Controller == NULL)
+		return NULL;
+
+	Controller->GetPlayerViewPoint(camLoc, camRot);
+	const FVector start_trace = camLoc;
+	const FVector direction = camRot.Vector();
+	const FVector end_trace = start_trace + (direction * MaxUseDistance);
+
+	FCollisionQueryParams TraceParams(FName(TEXT("")), true, this);
+	TraceParams.bReturnPhysicalMaterial = false;
+	TraceParams.bTraceComplex = true;
+
+	FHitResult Hit(ForceInit);
+	GetWorld()->LineTraceSingleByChannel(Hit, start_trace, end_trace, COLLISION_PROJECTILE, TraceParams);
+
+	return Cast<AUsableActor>(Hit.GetActor());
+}
+
 // Called every frame
 void ACustomChar::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (Controller && Controller->IsLocalController())
+	{
+		AUsableActor* usable = GetUsableInView();
+
+		// End Focus
+		if (FocusedUsableActor != usable)
+		{
+			if (FocusedUsableActor)
+			{
+				FocusedUsableActor->EndFocusItem();
+			}
+
+			bHasNewFocus = true;
+		}
+
+		// Assign new Focus
+		FocusedUsableActor = usable;
+
+		// Start Focus.
+		if (usable)
+		{
+			if (bHasNewFocus)
+			{
+				usable->StartFocusItem();
+				bHasNewFocus = false;
+			}
+		}
+	}
+
 }
+
+void ACustomChar::Use_Implementation()
+{
+	AUsableActor* usable = GetUsableInView();
+	if (usable)
+	{
+		usable->OnUsed(this);
+	}
+}
+
+bool ACustomChar::Use_Validate()
+{
+	// No special server-side validation performed.
+	return true;
+}
+
+
 
 // Called to bind functionality to input
 void ACustomChar::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -58,6 +133,7 @@ void ACustomChar::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	PlayerInputComponent->BindAxis("MoveRight", this, &ACustomChar::MoveRight);
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
+	PlayerInputComponent->BindAction("Use", IE_Pressed, this, &ACustomChar::Use);
 }
 void ACustomChar::MoveForward(float Value)
 {

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/StaticMeshActor.h"
+#include "Components/TextRenderComponent.h"
 #include "UsableActor.generated.h"
 
 /**
@@ -13,9 +14,14 @@ UCLASS()
 class FIRSTCPPPROJ_API AUsableActor : public AStaticMeshActor
 {
 	GENERATED_BODY()
+	AUsableActor(const class FObjectInitializer& PCIP);
 
 
 public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
+	FString StringForUsageLabel;
+	UTextRenderComponent* UsageLabel;
+
 	UFUNCTION(BlueprintImplementableEvent)
 	bool OnUsed(ACharacter* character);
 
